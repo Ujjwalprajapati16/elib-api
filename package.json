@@ -9,14 +9,15 @@
   ],
   "license": "ISC",
   "author": "Ujjwal Prajapati <ujjwalprajapati154@gmail.com>",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon sever.ts"
+    "dev": "nodemon server.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
+    "@types/express": "^5.0.3",
     "@types/node": "^24.3.1",
     "eslint": "^9.35.0",
     "globals": "^16.4.0",
@@ -24,5 +25,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
   }
 }
