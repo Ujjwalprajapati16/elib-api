@@ -97,7 +97,6 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     const { title, genre } = req.body;
     const { Bookid } = req.params;
 
-    // Validate Book ID
     if (!Bookid) {
         return next(createHttpError(400, "Book ID is required."));
     }
@@ -106,18 +105,15 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     let bookFilePath: string | null = null;
 
     try {
-        // Find the book
         const book = await bookModel.findById(Bookid);
         if (!book) {
             return next(createHttpError(404, "Book not found."));
         }
 
-        // Ensure the logged-in user is the author
         if (book.author.toString() !== (req as AuthRequest).userId) {
             return next(createHttpError(403, "Forbidden: You are not the author of this book."));
         }
 
-        // Handle uploaded files
         const files = req.files as {
             [fieldname: string]: Express.Multer.File[];
         };
@@ -125,7 +121,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
         let coverImageUrl = book.coverImage;
         let fileUrl = book.file;
 
-        // If new cover image uploaded
+        // Replace cover image if uploaded
         if (files?.coverImage?.[0]) {
             const coverImage = files.coverImage[0];
             coverImagePath = path.resolve(__dirname, "../../public/data/uploads", coverImage.filename);
@@ -135,19 +131,31 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
                 coverImage.filename,
                 coverImage.mimetype
             );
+
+            // Delete old cover image from Cloudinary only if it exists
+            if (book.coverImage) {
+                await deleteImage(book.coverImage);
+            }
+
             coverImageUrl = coverImageUpload.secure_url;
         }
 
-        // If new book file uploaded
+        // Replace book file if uploaded
         if (files?.file?.[0]) {
             const bookFile = files.file[0];
             bookFilePath = path.resolve(__dirname, "../../public/data/uploads", bookFile.filename);
 
             const bookFileUpload = await uploadFile(bookFilePath, bookFile.filename);
+
+            // Delete old file from Cloudinary only if it exists
+            if (book.file) {
+                await deleteFile(book.file);
+            }
+
             fileUrl = bookFileUpload.secure_url;
         }
 
-        // Update book fields
+        // Update fields
         if (title) book.title = title;
         if (genre) book.genre = genre;
         book.coverImage = coverImageUrl;
@@ -163,7 +171,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     } catch (err) {
         return next(createHttpError(500, (err as Error).message || "Failed to update book."));
     } finally {
-        // Delete local temp files if they exist
+        // Always clean local temp files if they exist
         if (coverImagePath) {
             await deleteLocalFile(coverImagePath);
         }
