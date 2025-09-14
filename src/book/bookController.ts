@@ -174,7 +174,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // todo: add pagination later
-        const book = await bookModel.find();
+        const book = await bookModel.find().populate("author", "-password -__v -createdAt -updatedAt").sort({ createdAt: -1 });
         res.status(200).json({
             message: "Books listed successfully",
             books: book,
@@ -184,4 +184,23 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-export { createBook, updateBook, listBooks };
+const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { Bookid } = req.params;
+        if (!Bookid) {
+            return next(createHttpError(400, "Book ID is required."));
+        }
+        const book = await bookModel.findById(Bookid).populate("author", "-password -__v -createdAt -updatedAt");
+        if (!book) {
+            return next(createHttpError(404, "Book not found."));
+        }
+        res.status(200).json({
+            message: "Book details fetched successfully",
+            book,
+        });
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to get book details."));
+    }
+}
+
+export { createBook, updateBook, listBooks, bookDeatils };
