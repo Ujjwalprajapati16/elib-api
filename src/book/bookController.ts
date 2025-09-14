@@ -7,6 +7,7 @@ import { uploadFile } from "../utils/uploadFile.ts";
 import { deleteLocalFile } from "../utils/deleteLocalFile.ts";
 import { getDirname } from "../utils/dirname.ts";
 import type { AuthRequest } from "../middlewares/authenticate.ts";
+import bookRouter from "./bookRouter.ts";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -170,4 +171,17 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export { createBook, updateBook };
+const listBooks = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // todo: add pagination later
+        const book = await bookModel.find();
+        res.status(200).json({
+            message: "Books listed successfully",
+            books: book,
+        });
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to list books."));
+    }
+}
+
+export { createBook, updateBook, listBooks };

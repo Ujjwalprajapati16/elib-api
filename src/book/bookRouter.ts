@@ -1,5 +1,5 @@
 import express from "express";
-import { createBook, updateBook } from "./bookController.ts";
+import { createBook, listBooks, updateBook } from "./bookController.ts";
 import multer from "multer";
 import path from "node:path";
 import { getDirname } from "../utils/dirname.ts";
@@ -35,5 +35,7 @@ bookRouter.patch(
     ]),
     updateBook
 )
+
+bookRouter.get("/", listBooks);
 
 export default bookRouter;
