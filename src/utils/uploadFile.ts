@@ -5,7 +5,7 @@ export const uploadFile = async (filePath: string, filename?: string) => {
         const options: any = {
             resource_type: "raw",
             folder: "book-pdfs",
-            format: filename?.split(".").at(-1) || "pdf",
+            format: "pdf",
         };
 
         if (filename) {
