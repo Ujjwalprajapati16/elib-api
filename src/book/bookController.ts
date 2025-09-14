@@ -6,11 +6,14 @@ import { uploadImage } from "../utils/uploadImage.ts";
 import { uploadFile } from "../utils/uploadFile.ts";
 import { deleteLocalFile } from "../utils/deleteLocalFile.ts";
 import { getDirname } from "../utils/dirname.ts";
+import type { AuthRequest } from "../middlewares/authenticate.ts";
+
 const __dirname = getDirname(import.meta.url);
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
     const { title, genre } = req.body;
 
+    // Validate required fields
     if (!title || !genre) {
         return next(createHttpError(400, "Title and genre are required."));
     }
@@ -19,12 +22,17 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
         [fieldname: string]: Express.Multer.File[];
     };
 
+    // Ensure cover image exists
     if (!files?.coverImage?.[0]) {
         return next(createHttpError(400, "Cover image is required."));
     }
 
     const coverImage = files.coverImage[0];
-    const coverImagePath = path.resolve(__dirname, "../../public/data/uploads", coverImage.filename);
+    const coverImagePath = path.resolve(
+        __dirname,
+        "../../public/data/uploads",
+        coverImage.filename
+    );
 
     const bookFile = files.file?.[0];
     const bookFilePath = bookFile
@@ -32,24 +40,36 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
         : null;
 
     try {
-        // Upload cover image
-        const coverImageUpload = await uploadImage(coverImagePath, coverImage.filename, coverImage.mimetype);
+        // Upload cover image to cloud storage
+        const coverImageUpload = await uploadImage(
+            coverImagePath,
+            coverImage.filename,
+            coverImage.mimetype
+        );
 
-        // Upload book file (optional)
+        // Upload book file if provided
         let bookFileUpload = null;
         if (bookFilePath && bookFile) {
             bookFileUpload = await uploadFile(bookFilePath, bookFile.filename);
         }
 
-        // Save to DB
+        const _req = req as AuthRequest;
+        if (!_req.userId) {
+            return next(
+                createHttpError(401, "Unauthorized: User ID missing in request.")
+            );
+        }
+
+        // Create new book entry in database
         const newBook = await bookModel.create({
             title,
             genre,
-            author: "68c469f6be6ba5884101d9ee",
+            author: _req.userId,
             coverImage: coverImageUpload.secure_url,
             file: bookFileUpload?.secure_url || null,
         });
 
+        // Populate author details excluding sensitive fields
         await newBook.populate("author", "-password -__v -createdAt -updatedAt");
 
         res.status(201).json({
@@ -57,9 +77,11 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
             book: newBook,
         });
     } catch (err) {
-        next(createHttpError(500, (err as Error).message || "Failed to create book."));
+        next(
+            createHttpError(500, (err as Error).message || "Failed to create book.")
+        );
     } finally {
-        // cleanup local temp files
+        // Delete local temporary files regardless of success or failure
         await deleteLocalFile(coverImagePath);
         if (bookFilePath) {
             await deleteLocalFile(bookFilePath);
