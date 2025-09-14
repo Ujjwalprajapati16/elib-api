@@ -89,4 +89,85 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export { createBook };
+
+const updateBook = async (req: Request, res: Response, next: NextFunction) => {
+    const { title, genre } = req.body;
+    const { Bookid } = req.params;
+
+    // Validate Book ID
+    if (!Bookid) {
+        return next(createHttpError(400, "Book ID is required."));
+    }
+
+    let coverImagePath: string | null = null;
+    let bookFilePath: string | null = null;
+
+    try {
+        // Find the book
+        const book = await bookModel.findById(Bookid);
+        if (!book) {
+            return next(createHttpError(404, "Book not found."));
+        }
+
+        // Ensure the logged-in user is the author
+        if (book.author.toString() !== (req as AuthRequest).userId) {
+            return next(createHttpError(403, "Forbidden: You are not the author of this book."));
+        }
+
+        // Handle uploaded files
+        const files = req.files as {
+            [fieldname: string]: Express.Multer.File[];
+        };
+
+        let coverImageUrl = book.coverImage;
+        let fileUrl = book.file;
+
+        // If new cover image uploaded
+        if (files?.coverImage?.[0]) {
+            const coverImage = files.coverImage[0];
+            coverImagePath = path.resolve(__dirname, "../../public/data/uploads", coverImage.filename);
+
+            const coverImageUpload = await uploadImage(
+                coverImagePath,
+                coverImage.filename,
+                coverImage.mimetype
+            );
+            coverImageUrl = coverImageUpload.secure_url;
+        }
+
+        // If new book file uploaded
+        if (files?.file?.[0]) {
+            const bookFile = files.file[0];
+            bookFilePath = path.resolve(__dirname, "../../public/data/uploads", bookFile.filename);
+
+            const bookFileUpload = await uploadFile(bookFilePath, bookFile.filename);
+            fileUrl = bookFileUpload.secure_url;
+        }
+
+        // Update book fields
+        if (title) book.title = title;
+        if (genre) book.genre = genre;
+        book.coverImage = coverImageUrl;
+        book.file = fileUrl;
+
+        await book.save();
+        await book.populate("author", "-password -__v -createdAt -updatedAt");
+
+        res.status(200).json({
+            message: "Book updated successfully",
+            book,
+        });
+    } catch (err) {
+        return next(createHttpError(500, (err as Error).message || "Failed to update book."));
+    } finally {
+        // Delete local temp files if they exist
+        if (coverImagePath) {
+            await deleteLocalFile(coverImagePath);
+        }
+        if (bookFilePath) {
+            await deleteLocalFile(bookFilePath);
+        }
+    }
+};
+
+export { createBook, updateBook };
