@@ -8,6 +8,8 @@ import { deleteLocalFile } from "../utils/deleteLocalFile.ts";
 import { getDirname } from "../utils/dirname.ts";
 import type { AuthRequest } from "../middlewares/authenticate.ts";
 import bookRouter from "./bookRouter.ts";
+import { deleteImage } from "../utils/deleteImage.ts";
+import { deleteFile } from "../utils/deleteFile.ts";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -203,4 +205,39 @@ const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-export { createBook, updateBook, listBooks, bookDeatils };
+const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { Bookid } = req.params;
+        if (!Bookid) {
+            return next(createHttpError(400, "Book ID is required."));
+        }
+
+        const book = await bookModel.findOne({ _id: Bookid });
+        if (!book) {
+            return next(createHttpError(404, "Book not found."));
+        }
+
+        // Ensure the logged-in user is the author
+        if (book.author.toString() !== (req as AuthRequest).userId) {
+            return next(createHttpError(403, "Forbidden: You are not the author of this book."));
+        }
+
+        // delete from cloudinary
+        if (book.coverImage) {
+            await deleteImage(book.coverImage);
+        }
+        if (book.file) {
+            await deleteFile(book.file);
+        }
+
+        // Delete book from database
+        await bookModel.deleteOne({ _id: Bookid });
+        res.status(200).json({
+            message: "Book deleted successfully",
+        });
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to delete book."));
+    }
+}
+
+export { createBook, updateBook, listBooks, bookDeatils, deleteBook };
