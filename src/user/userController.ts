@@ -4,7 +4,6 @@ import userModel from "./userModel.ts";
 import bcrypt from "bcrypt";
 import { config } from "../config/config.ts";
 import jwt from "jsonwebtoken";
-import { create } from "domain";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
     const { name, email, password } = req.body;
@@ -41,8 +40,41 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Response
-    res.json({ accessToken: token });
+    res.status(201).json({ accessToken: token });
+}
+
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body;
+    // Validation
+    if (!email || !password) {
+        const error = createHttpError(400, "All fields are required");
+        return next(error);
+    }
+
+    let user;
+
+    // Database call
+    try {
+        user = await userModel.findOne({ email: email });
+        if (!user) {
+            const error = createHttpError(404, "User not found");
+            return next(error);
+        }
+    } catch (error) {
+        return next(createHttpError(500, "Database error"));
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        const error = createHttpError(401, "Invalid credentials");
+        return next(error);
+    }
+
+    // Token generation
+    const token = jwt.sign({ sub: user._id, email: user.email }, config.jwt_secret, { expiresIn: "7d" });
+
+    res.status(200).json({ accessToken: token });// Response
 }
 
 
-export { createUser };
+export { createUser, loginUser };
