@@ -7,17 +7,16 @@ import { uploadFile } from "../utils/uploadFile.ts";
 import { deleteLocalFile } from "../utils/deleteLocalFile.ts";
 import { getDirname } from "../utils/dirname.ts";
 import type { AuthRequest } from "../middlewares/authenticate.ts";
-import bookRouter from "./bookRouter.ts";
 import { deleteImage } from "../utils/deleteImage.ts";
 import { deleteFile } from "../utils/deleteFile.ts";
 
 const __dirname = getDirname(import.meta.url);
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
-    const { title, genre } = req.body;
+    const { title, genre, description } = req.body;
 
     // Validate required fields
-    if (!title || !genre) {
+    if (!title || !genre || !description) {
         return next(createHttpError(400, "Title and genre are required."));
     }
 
@@ -70,10 +69,11 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
             author: _req.userId,
             coverImage: coverImageUpload.secure_url,
             file: bookFileUpload?.secure_url || null,
+            description,
         });
 
         // Populate author details excluding sensitive fields
-        await newBook.populate("author", "-password -__v -createdAt -updatedAt");
+        await newBook.populate("author", "name");
 
         res.status(201).json({
             message: "Book created successfully",
@@ -94,7 +94,7 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
 
 const updateBook = async (req: Request, res: Response, next: NextFunction) => {
-    const { title, genre } = req.body;
+    const { title, genre, description } = req.body;
     const { Bookid } = req.params;
 
     if (!Bookid) {
@@ -158,11 +158,12 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
         // Update fields
         if (title) book.title = title;
         if (genre) book.genre = genre;
+        if (description) book.description = description;
         book.coverImage = coverImageUrl;
         book.file = fileUrl;
 
         await book.save();
-        await book.populate("author", "-password -__v -createdAt -updatedAt");
+        await book.populate("author", "name");
 
         res.status(200).json({
             message: "Book updated successfully",
@@ -184,7 +185,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // todo: add pagination later
-        const book = await bookModel.find().populate("author", "-password -__v -createdAt -updatedAt").sort({ createdAt: -1 });
+        const book = await bookModel.find().populate("author", "name").sort({ createdAt: -1 });
         res.status(200).json({
             message: "Books listed successfully",
             books: book,
@@ -200,7 +201,7 @@ const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
         if (!Bookid) {
             return next(createHttpError(400, "Book ID is required."));
         }
-        const book = await bookModel.findById(Bookid).populate("author", "-password -__v -createdAt -updatedAt");
+        const book = await bookModel.findById(Bookid).populate("author", "name");
         if (!book) {
             return next(createHttpError(404, "Book not found."));
         }
