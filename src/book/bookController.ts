@@ -184,16 +184,38 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 
 const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // todo: add pagination later
-        const book = await bookModel.find().populate("author", "name").sort({ createdAt: -1 });
+        // Parse query params with defaults
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        // Calculate skip
+        const skip = (page - 1) * limit;
+
+        // Fetch books with pagination
+        const books = await bookModel
+            .find()
+            .populate("author", "name")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Count total books
+        const totalBooks = await bookModel.countDocuments();
+
         res.status(200).json({
             message: "Books listed successfully",
-            books: book,
+            books,
+            pagination: {
+                totalBooks,
+                currentPage: page,
+                totalPages: Math.ceil(totalBooks / limit),
+                pageSize: limit,
+            },
         });
     } catch (error) {
         return next(createHttpError(500, (error as Error).message || "Failed to list books."));
     }
-}
+};
 
 const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
     try {
