@@ -159,8 +159,9 @@ Fields:
 - Form fields:
   - title: string
   - genre: string
+  - descripition: string
   - coverImage: file (required)
-  - file: file (optional)
+  - file: file (required)
 - 201 Created
 - Response:
   ```json
@@ -170,8 +171,9 @@ Fields:
       "_id": "...",
       "title": "...",
       "genre": "...",
+      "description":"..."
       "coverImage": "https://...",
-      "file": "https://..." | null,
+      "file": "https://...",
       "author": { "_id": "...", "name": "...", "email": "..." },
       "createdAt": "2025-01-01T00:00:00.000Z",
       "updatedAt": "2025-01-01T00:00:00.000Z"
@@ -196,6 +198,7 @@ Fields:
 - Any of the following fields can be sent:
   - title: string
   - genre: string
+  - description: string
   - coverImage: file (optional, replaces existing)
   - file: file (optional, replaces existing)
 - 200 OK
@@ -226,6 +229,7 @@ Fields:
         "_id": "...",
         "title": "...",
         "genre": "...",
+        "description": "..."
         "coverImage": "https://...",
         "file": "https://..." | null,
         "author": { "_id": "...", "name": "...", "email": "..." },
