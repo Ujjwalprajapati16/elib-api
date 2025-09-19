@@ -1,5 +1,5 @@
 import express from "express";
-import { bookDeatils, createBook, deleteBook, listBooks, updateBook } from "./bookController.ts";
+import { bookDeatils, createBook, deleteBook, listBooks, updateBook } from "../controllers/bookController.ts";
 import multer from "multer";
 import path from "node:path";
 import { getDirname } from "../utils/dirname.ts";

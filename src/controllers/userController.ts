@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
-import userModel from "./userModel.ts";
+import userModel from "../models/userModel.ts";
 import bcrypt from "bcrypt";
 import { config } from "../config/config.ts";
 import jwt from "jsonwebtoken";

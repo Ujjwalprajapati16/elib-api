@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import path from "node:path";
 import createHttpError from "http-errors";
-import bookModel from "./bookModel.ts";
+import bookModel from "../models/bookModel.ts";
 import { uploadImage } from "../utils/uploadImage.ts";
 import { uploadFile } from "../utils/uploadFile.ts";
 import { deleteLocalFile } from "../utils/deleteLocalFile.ts";

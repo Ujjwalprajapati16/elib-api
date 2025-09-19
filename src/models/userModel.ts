@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import type { User } from "./userTypes.ts";
+import type { User } from "../types/userTypes.ts";
 
 const userSchema = new mongoose.Schema<User>({
     name: {

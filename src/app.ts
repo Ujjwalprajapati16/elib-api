@@ -1,7 +1,7 @@
 import express from 'express';
 import globalErrorHandler from './middlewares/globalErrorHandler.ts';
-import userRouter from './user/userRouter.ts';
-import bookRouter from './book/bookRouter.ts';
+import userRouter from './routes/userRouter.ts';
+import bookRouter from './routes/bookRouter.ts';
 import cors from 'cors';
 import { config } from './config/config.ts';
 
