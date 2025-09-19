@@ -227,6 +227,11 @@ const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
         if (!book) {
             return next(createHttpError(404, "Book not found."));
         }
+
+        // update views count
+        book.views += 1;
+        await book.save();
+
         res.status(200).json({
             message: "Book details fetched successfully",
             book,
