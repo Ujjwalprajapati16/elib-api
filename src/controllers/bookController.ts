@@ -9,6 +9,7 @@ import { getDirname } from "../utils/dirname.ts";
 import type { AuthRequest } from "../middlewares/authenticate.ts";
 import { deleteImage } from "../utils/deleteImage.ts";
 import { deleteFile } from "../utils/deleteFile.ts";
+import mongoose from "mongoose";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -277,25 +278,43 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
 }
 
 // update like count
-const updateLike = async (req: Request, res: Response, next: NextFunction) => {
+const updateLike = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { Bookid } = req.params;
         if (!Bookid) {
             return next(createHttpError(400, "Book ID is required."));
         }
+
+        if (!mongoose.Types.ObjectId.isValid(Bookid)) {
+            return next(createHttpError(400, "Invalid Book ID format."));
+        }
+
         const book = await bookModel.findById(Bookid);
         if (!book) {
             return next(createHttpError(404, "Book not found."));
         }
-        book.likes += 1;
+
+        const userId = new mongoose.Types.ObjectId(req.userId);
+
+        const hasLiked = book.likes.some((id) => id.equals(userId));
+
+        if (hasLiked) {
+            book.likes = book.likes.filter((id) => !id.equals(userId));
+        } else {
+            book.likes.push(userId);
+        }
+
         await book.save();
+
         res.status(200).json({
-            message: "Like count updated successfully",
+            message: hasLiked ? "Book unliked successfully" : "Book liked successfully",
+            likesCount: book.likes.length,
             book,
         });
     } catch (error) {
-        return next(createHttpError(500, (error as Error).message || "Failed to update like count."));
+        return next(
+            createHttpError(500, (error as Error).message || "Failed to update like count.")
+        );
     }
 }
-
 export { createBook, updateBook, listBooks, bookDeatils, deleteBook, updateLike };

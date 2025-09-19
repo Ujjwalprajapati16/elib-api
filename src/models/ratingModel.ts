@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import type { Rating } from "../types/ratingTypes.ts";
 
-const ratingSchema = new mongoose.Schema({
+const ratingSchema = new mongoose.Schema<Rating>({
     book: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Book",
@@ -13,7 +14,9 @@ const ratingSchema = new mongoose.Schema({
     },
     rating: {
         type: Number,
-        required: true
+        required: true,
+        min: 1,
+        max: 5
     },
     comment: {
         type: String,
