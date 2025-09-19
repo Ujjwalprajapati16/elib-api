@@ -1,4 +1,4 @@
-import type { User } from "../user/userTypes.ts";
+import type { User } from "./userTypes.ts";
 
 export interface Book {
     _id: string;
@@ -8,6 +8,8 @@ export interface Book {
     genre: string;
     coverImage: string;
     file: string;
+    views: number;
+    likes: number;
     createdAt: Date;
     updatedAt: Date;
 }

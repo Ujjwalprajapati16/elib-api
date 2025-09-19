@@ -26,6 +26,14 @@ const bookSchema = new mongoose.Schema<Book>({
     genre: {
         type: String,
         required: true
+    },
+    views: {
+        type: Number,
+        default: 0
+    },
+    likes: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true });
 
