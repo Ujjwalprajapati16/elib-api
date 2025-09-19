@@ -276,4 +276,26 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-export { createBook, updateBook, listBooks, bookDeatils, deleteBook };
+// update like count
+const updateLike = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { Bookid } = req.params;
+        if (!Bookid) {
+            return next(createHttpError(400, "Book ID is required."));
+        }
+        const book = await bookModel.findById(Bookid);
+        if (!book) {
+            return next(createHttpError(404, "Book not found."));
+        }
+        book.likes += 1;
+        await book.save();
+        res.status(200).json({
+            message: "Like count updated successfully",
+            book,
+        });
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to update like count."));
+    }
+}
+
+export { createBook, updateBook, listBooks, bookDeatils, deleteBook, updateLike };
