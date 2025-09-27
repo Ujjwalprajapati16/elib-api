@@ -10,6 +10,7 @@ import type { AuthRequest } from "../middlewares/authenticate.ts";
 import { deleteImage } from "../utils/deleteImage.ts";
 import { deleteFile } from "../utils/deleteFile.ts";
 import mongoose from "mongoose";
+import ratingModel from "../models/ratingModel.ts";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -219,29 +220,53 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const bookDetails = async (req: Request, res: Response, next: NextFunction) => {
+  const session = await mongoose.startSession();
+
   try {
     const { Bookid } = req.params;
     if (!Bookid) {
       return next(createHttpError(400, "Book ID is required."));
     }
 
+    session.startTransaction();
+
+    // ✅ Increment views and get updated book
     const book = await bookModel
       .findByIdAndUpdate(
         Bookid,
         { $inc: { views: 1 } },
-        { new: true } // returns updated document
+        { new: true, session } // ensure part of transaction
       )
       .populate("author", "name");
 
     if (!book) {
+      await session.abortTransaction();
       return next(createHttpError(404, "Book not found."));
     }
+
+    const ratings = await ratingModel
+      .find({ book: Bookid })
+      .populate("user", "name") // optional: populate user name
+      .session(session);
+
+    const avgRating =
+      ratings.length > 0
+        ? ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length
+        : 0;
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       message: "Book details fetched successfully",
       book,
+      ratings,
+      averageRating: avgRating.toFixed(2),
+      totalRatings: ratings.length,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     return next(
       createHttpError(500, (error as Error).message || "Failed to get book details.")
     );
