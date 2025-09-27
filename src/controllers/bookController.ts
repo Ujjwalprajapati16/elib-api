@@ -274,39 +274,49 @@ const bookDetails = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { Bookid } = req.params;
-        if (!Bookid) {
-            return next(createHttpError(400, "Book ID is required."));
-        }
-
-        const book = await bookModel.findOne({ _id: Bookid });
-        if (!book) {
-            return next(createHttpError(404, "Book not found."));
-        }
-
-        // Ensure the logged-in user is the author
-        if (book.author.toString() !== (req as AuthRequest).userId) {
-            return next(createHttpError(403, "Forbidden: You are not the author of this book."));
-        }
-
-        // delete from cloudinary
-        if (book.coverImage) {
-            await deleteImage(book.coverImage);
-        }
-        if (book.file) {
-            await deleteFile(book.file);
-        }
-
-        // Delete book from database
-        await bookModel.deleteOne({ _id: Bookid });
-        res.status(200).json({
-            message: "Book deleted successfully",
-        });
-    } catch (error) {
-        return next(createHttpError(500, (error as Error).message || "Failed to delete book."));
+  const session = await mongoose.startSession();
+  try {
+    const { Bookid } = req.params;
+    if (!Bookid) {
+      return next(createHttpError(400, "Book ID is required."));
     }
-}
+
+    session.startTransaction();
+
+    const book = await bookModel.findById(Bookid).session(session);
+    if (!book) {
+      await session.abortTransaction();
+      return next(createHttpError(404, "Book not found."));
+    }
+
+    if (book.author.toString() !== (req as AuthRequest).userId) {
+      await session.abortTransaction();
+      return next(createHttpError(403, "Forbidden: You are not the author of this book."));
+    }
+
+    await ratingModel.deleteMany({ book: Bookid }).session(session);
+
+    if (book.coverImage) {
+      await deleteImage(book.coverImage);
+    }
+    if (book.file) {
+      await deleteFile(book.file);
+    }
+
+    await bookModel.deleteOne({ _id: Bookid }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      message: "Book and related ratings deleted successfully",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return next(createHttpError(500, (error as Error).message || "Failed to delete book."));
+  }
+};
 
 // update like count
 const updateLike = async (req: AuthRequest, res: Response, next: NextFunction) => {
