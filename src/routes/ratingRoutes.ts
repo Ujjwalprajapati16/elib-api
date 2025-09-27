@@ -4,7 +4,7 @@ import authenticate from "../middlewares/authenticate.ts";
 
 const ratingRouter = express.Router();
 
-ratingRouter.post("/:id",authenticate, addRating);
-ratingRouter.delete("/:id",authenticate, deleteRating);
+ratingRouter.post("/:BookId",authenticate, addRating);
+ratingRouter.delete("/:BookId/:ratingId",authenticate, deleteRating);
 
 export default ratingRouter;
