@@ -6,9 +6,9 @@ import { config } from "../config/config.ts";
 import jwt from "jsonwebtoken";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     // Validation
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !role) {
         const error = createHttpError(400, "All fields are required");
         return next(error);
     }
@@ -31,10 +31,10 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Business Logic
-        const newUser = await userModel.create({ name, email, password: hashedPassword });
+        const newUser = await userModel.create({ name, email, password: hashedPassword, role });
 
         // Token generation
-        token = jwt.sign({ sub: newUser._id, email: newUser.email }, config.jwt_secret, { expiresIn: "7d" });
+        token = jwt.sign({ sub: newUser._id, email: newUser.email, role: newUser.role }, config.jwt_secret, { expiresIn: "7d" });
     } catch (error) {
         return next(createHttpError(500, "Database error"));
     }
@@ -71,7 +71,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Token generation
-    const token = jwt.sign({ sub: user._id, email: user.email }, config.jwt_secret, { expiresIn: "7d" });
+    const token = jwt.sign({ sub: user._id, email: user.email, role: user.role }, config.jwt_secret, { expiresIn: "7d" });
 
     res.status(200).json({ accessToken: token });// Response
 }
