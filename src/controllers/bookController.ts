@@ -218,29 +218,35 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-const bookDeatils = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { Bookid } = req.params;
-        if (!Bookid) {
-            return next(createHttpError(400, "Book ID is required."));
-        }
-        const book = await bookModel.findById(Bookid).populate("author", "name");
-        if (!book) {
-            return next(createHttpError(404, "Book not found."));
-        }
-
-        // update views count
-        book.views += 1;
-        await book.save();
-
-        res.status(200).json({
-            message: "Book details fetched successfully",
-            book,
-        });
-    } catch (error) {
-        return next(createHttpError(500, (error as Error).message || "Failed to get book details."));
+const bookDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { Bookid } = req.params;
+    if (!Bookid) {
+      return next(createHttpError(400, "Book ID is required."));
     }
-}
+
+    const book = await bookModel
+      .findByIdAndUpdate(
+        Bookid,
+        { $inc: { views: 1 } },
+        { new: true } // returns updated document
+      )
+      .populate("author", "name");
+
+    if (!book) {
+      return next(createHttpError(404, "Book not found."));
+    }
+
+    res.status(200).json({
+      message: "Book details fetched successfully",
+      book,
+    });
+  } catch (error) {
+    return next(
+      createHttpError(500, (error as Error).message || "Failed to get book details.")
+    );
+  }
+};
 
 const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -317,4 +323,4 @@ const updateLike = async (req: AuthRequest, res: Response, next: NextFunction) =
         );
     }
 }
-export { createBook, updateBook, listBooks, bookDeatils, deleteBook, updateLike };
+export { createBook, updateBook, listBooks, bookDetails, deleteBook, updateLike };
