@@ -230,7 +230,6 @@ const bookDetails = async (req: Request, res: Response, next: NextFunction) => {
 
     session.startTransaction();
 
-    // ✅ Increment views and get updated book
     const book = await bookModel
       .findByIdAndUpdate(
         Bookid,

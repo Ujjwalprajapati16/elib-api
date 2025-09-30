@@ -40,7 +40,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Response
-    res.status(201).json({ accessToken: token });
+    res.status(201).json({ accessToken: token, user: { name, email, role } });
 }
 
 const loginUser = async (req: Request, res: Response, next: NextFunction) => {
@@ -73,7 +73,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
     // Token generation
     const token = jwt.sign({ sub: user._id, email: user.email, role: user.role }, config.jwt_secret, { expiresIn: "7d" });
 
-    res.status(200).json({ accessToken: token });// Response
+    res.status(200).json({ accessToken: token, user: { name: user.name, email: user.email, role: user.role }});// Response
 }
 
 
