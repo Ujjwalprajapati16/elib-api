@@ -5,6 +5,7 @@ import bookRouter from './routes/bookRouter.ts';
 import cors from 'cors';
 import { config } from './config/config.ts';
 import ratingRouter from './routes/ratingRoutes.ts';
+import insightRouter from './routes/insightRouter.ts';
 
 const app = express();
 app.use(cors({
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 app.use("/api/users", userRouter);
 app.use("/api/books", bookRouter);
 app.use("/api/rate", ratingRouter);
+app.use("/api/insight", insightRouter);
 
 // Global error handler
 app.use(globalErrorHandler);

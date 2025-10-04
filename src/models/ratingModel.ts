@@ -22,6 +22,8 @@ const ratingSchema = new mongoose.Schema<Rating>({
         type: String,
         required: true
     }
+}, {
+    timestamps: true
 });
 
 export default mongoose.model("Rating", ratingSchema);
