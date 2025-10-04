@@ -1,6 +1,6 @@
 # elib-apis
 
-A modern, lightweight REST API backend for elib — a simple ebook library. It provides user authentication and book management with file and image uploads.
+A modern, lightweight REST API backend for elib — a simple ebook library. It provides user authentication, book management with uploads, user ratings, insights/analytics, likes, and pagination.
 
 - Runtime: Node.js (ESM), TypeScript
 - Framework: Express
@@ -13,7 +13,11 @@ A modern, lightweight REST API backend for elib — a simple ebook library. It p
 - User registration and login with hashed passwords (bcrypt)
 - JWT-based authentication middleware
 - CRUD operations for books
-- File uploads (cover image required, ebook file optional) via Multer + Cloudinary
+- File uploads (cover image required; ebook file optional) via Multer + Cloudinary
+- Book likes (toggle like/unlike)
+- User ratings with comments
+- Insights for authors (average rating, highest avg rated book, most recent rating)
+- Pagination for listing books
 - Centralized error handling
 - CORS configured for a single frontend origin
 
@@ -63,15 +67,14 @@ $bytes = New-Object byte[] 64; [System.Security.Cryptography.RandomNumberGenerat
 - src/config/db.ts — Mongo connection helper
 - src/middlewares/authenticate.ts — JWT auth middleware
 - src/middlewares/globalErrorHandler.ts — error shape and handling
-- src/user/* — user routes, controller, and model
-- src/book/* — book routes, controller, and model
+- src/controllers/*, src/models/*, src/routes/* — feature modules
 - server.ts — app bootstrap
 
 
 ## API Reference
 Base URL: http://localhost:3000
 
-All JSON responses follow this error shape on failure:
+Error responses follow this shape:
 ```json
 {
   "status": "error",
@@ -80,12 +83,12 @@ All JSON responses follow this error shape on failure:
 }
 ```
 
-### Auth
+Auth
 - Authentication: Bearer <JWT>
 - Header: Authorization: Bearer <token>
 
 
-### Health/Welcome
+Health/Welcome
 - GET /
   - 200 OK
   - Response:
@@ -94,7 +97,7 @@ All JSON responses follow this error shape on failure:
   ```
 
 
-### Users
+Users
 
 1) Register
 - Method: POST
@@ -104,19 +107,17 @@ All JSON responses follow this error shape on failure:
   {
     "name": "Alice",
     "email": "alice@example.com",
-    "password": "password123"
+    "password": "password123",
+    "role": "author"    // or "reader"
   }
   ```
 - 201 Created
 - Response:
   ```json
-  { "accessToken": "<jwt>" }
-  ```
-- Example (curl):
-  ```bash
-  curl -X POST http://localhost:3000/api/users/register \
-    -H "Content-Type: application/json" \
-    -d '{"name":"Alice","email":"alice@example.com","password":"password123"}'
+  {
+    "accessToken": "<jwt>",
+    "user": { "name": "Alice", "email": "alice@example.com", "role": "author" }
+  }
   ```
 
 2) Login
@@ -132,24 +133,22 @@ All JSON responses follow this error shape on failure:
 - 200 OK
 - Response:
   ```json
-  { "accessToken": "<jwt>" }
-  ```
-- Example (curl):
-  ```bash
-  curl -X POST http://localhost:3000/api/users/login \
-    -H "Content-Type: application/json" \
-    -d '{"email":"alice@example.com","password":"password123"}'
+  {
+    "accessToken": "<jwt>",
+    "user": { "name": "Alice", "email": "alice@example.com", "role": "author" }
+  }
   ```
 
 
-### Books
+Books
 All endpoints under /api/books. Some actions require Authorization header.
 
 Fields:
 - title: string (required on create)
 - genre: string (required on create)
-- coverImage: file (required on create; key name: coverImage)
-- file: file (optional; key name: file)
+- description: string (required on create)
+- coverImage: file (required on create; form key: coverImage)
+- file: file (optional; form key: file)
 
 1) Create book
 - Method: POST
@@ -159,9 +158,9 @@ Fields:
 - Form fields:
   - title: string
   - genre: string
-  - descripition: string
+  - description: string
   - coverImage: file (required)
-  - file: file (required)
+  - file: file (optional)
 - 201 Created
 - Response:
   ```json
@@ -171,23 +170,14 @@ Fields:
       "_id": "...",
       "title": "...",
       "genre": "...",
-      "description":"..."
+      "description": "...",
       "coverImage": "https://...",
-      "file": "https://...",
-      "author": { "_id": "...", "name": "...", "email": "..." },
-      "createdAt": "2025-01-01T00:00:00.000Z",
-      "updatedAt": "2025-01-01T00:00:00.000Z"
+      "file": "https://..." | null,
+      "author": { "_id": "...", "name": "..." },
+      "createdAt": "...",
+      "updatedAt": "..."
     }
   }
-  ```
-- Example (curl with Powershell escaping may vary):
-  ```bash
-  curl -X POST http://localhost:3000/api/books/add \
-    -H "Authorization: Bearer <jwt>" \
-    -F "title=The Pragmatic Programmer" \
-    -F "genre=Programming" \
-    -F "coverImage=@./cover.jpg" \
-    -F "file=@./book.pdf"
   ```
 
 2) Update book
@@ -196,11 +186,7 @@ Fields:
 - Auth: Required
 - Content-Type: multipart/form-data
 - Any of the following fields can be sent:
-  - title: string
-  - genre: string
-  - description: string
-  - coverImage: file (optional, replaces existing)
-  - file: file (optional, replaces existing)
+  - title, genre, description, coverImage (file), file (file)
 - 200 OK
 - Response:
   ```json
@@ -209,42 +195,29 @@ Fields:
     "book": { /* updated book */ }
   }
   ```
-- Example:
-  ```bash
-  curl -X PATCH http://localhost:3000/api/books/update/BOOK_ID \
-    -H "Authorization: Bearer <jwt>" \
-    -F "title=New Title"
-  ```
 
-3) List books
+3) List books with pagination
 - Method: GET
 - Path: /api/books/
+- Query params:
+  - page: number (default 1)
+  - limit: number (default 10)
 - 200 OK
 - Response:
   ```json
   {
     "message": "Books listed successfully",
-    "books": [
-      {
-        "_id": "...",
-        "title": "...",
-        "genre": "...",
-        "description": "..."
-        "coverImage": "https://...",
-        "file": "https://..." | null,
-        "author": { "_id": "...", "name": "...", "email": "..." },
-        "createdAt": "...",
-        "updatedAt": "..."
-      }
-    ]
+    "books": [ /* books */ ],
+    "pagination": {
+      "totalBooks": 42,
+      "currentPage": 1,
+      "totalPages": 5,
+      "pageSize": 10
+    }
   }
   ```
-- Example:
-  ```bash
-  curl http://localhost:3000/api/books/
-  ```
 
-4) Book details
+4) Book details (increments view count, returns ratings and average)
 - Method: GET
 - Path: /api/books/:Bookid
 - 200 OK
@@ -252,35 +225,161 @@ Fields:
   ```json
   {
     "message": "Book details fetched successfully",
-    "book": { /* book */ }
+    "book": { /* book incl. updated views */ },
+    "ratings": [
+      { "_id": "...", "rating": 5, "comment": "...", "user": { "name": "..." } }
+    ],
+    "averageRating": "4.50",
+    "totalRatings": 12
   }
   ```
-- Example:
-  ```bash
-  curl http://localhost:3000/api/books/BOOK_ID
-  ```
 
-5) Delete book
+5) Delete book (also deletes associated ratings)
 - Method: DELETE
 - Path: /api/books/:Bookid
 - Auth: Required (must be author)
 - 200 OK
 - Response:
   ```json
+  { "message": "Book and related ratings deleted successfully" }
+  ```
+
+6) Toggle like/unlike a book
+- Method: PATCH
+- Path: /api/books/:Bookid/like
+- Auth: Required
+- 200 OK
+- Response:
+  ```json
   {
-    "message": "Book deleted successfully"
+    "message": "Book liked successfully",
+    "likesCount": 3,
+    "book": { /* book */ }
   }
   ```
-- Example:
-  ```bash
-  curl -X DELETE http://localhost:3000/api/books/BOOK_ID \
-    -H "Authorization: Bearer <jwt>"
+  or
+  ```json
+  {
+    "message": "Book unliked successfully",
+    "likesCount": 2,
+    "book": { /* book */ }
+  }
+  ```
+
+
+Ratings
+Base: /api/rate
+
+1) Add rating to a book
+- Method: POST
+- Path: /api/rate/:BookId
+- Auth: Required
+- Body (JSON):
+  ```json
+  { "rating": 5, "comment": "Excellent read" }
+  ```
+- 200 OK
+- Response:
+  ```json
+  { "message": "Rating added successfully" }
+  ```
+
+2) Delete a rating
+- Method: DELETE
+- Path: /api/rate/:BookId/:ratingId
+- Auth: Required
+- 200 OK
+- Response:
+  ```json
+  { "message": "Rating deleted successfully" }
+  ```
+
+3) Get ratings for a book
+- Method: GET
+- Path: /api/rate/book/:BookId
+- Auth: Required
+- 200 OK
+- Response:
+  ```json
+  [ { "_id": "...", "rating": 5, "comment": "...", "book": "...", "user": "..." } ]
+  ```
+
+4) Get ratings for all books by an author
+- Method: GET
+- Path: /api/rate/author/:AuthorId
+- Auth: Required
+- 200 OK
+- Response:
+  ```json
+  {
+    "message": "All ratings for author's books fetched successfully",
+    "totalRatings": 10,
+    "ratings": [
+      {
+        "_id": "...",
+        "rating": 4,
+        "comment": "...",
+        "createdAt": "...",
+        "book": { "_id": "...", "title": "..." },
+        "reviewer": { "_id": "...", "name": "...", "email": "..." }
+      }
+    ]
+  }
+  ```
+
+
+Insights (author analytics)
+Base: /api/insight
+
+1) Average rating for an author's books
+- Method: GET
+- Path: /api/insight/averageRating/:authorId
+- 200 OK
+- Response:
+  ```json
+  {
+    "message": "Average rating fetched successfully",
+    "averageRating": 4.2,
+    "totalRatings": 57
+  }
+  ```
+
+2) Highest average rated book for an author
+- Method: GET
+- Path: /api/insight/heighestRatedBook/:authorId
+- 200 OK
+- Response:
+  ```json
+  {
+    "message": "Highest average rated book fetched successfully",
+    "highestAvgRatedBook": "<bookId>",
+    "averageRating": 4.8
+  }
+  ```
+
+3) Most recent rating for an author's books
+- Method: GET
+- Path: /api/insight/recentRating/:authorId
+- 200 OK
+- Response:
+  ```json
+  {
+    "message": "Most recent rating fetched successfully",
+    "recentRating": {
+      "bookTitle": "...",
+      "rating": 5,
+      "comment": "...",
+      "createdAt": "...",
+      "reviewerName": "...",
+      "reviewerEmail": "..."
+    }
+  }
   ```
 
 
 ## Development notes
 - ESM + TypeScript are configured with NodeNext in tsconfig.json and "type": "module" in package.json.
-- JWT tokens include sub and email and expire in 7 days by default.
+- JWT tokens include sub, email, and role, and expire in 7 days by default.
 - Error handler returns a consistent JSON shape and includes stack traces only in development.
 - CORS is restricted to FRONTEND_URL.
 
