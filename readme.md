@@ -21,6 +21,118 @@ A modern, lightweight REST API backend for elib — a simple ebook library. It p
 - Centralized error handling
 - CORS configured for a single frontend origin
 
+## Database Schema
+
+```mermaid
+erDiagram
+    USER {
+        ObjectId _id PK
+        string name
+        string email
+        string password "hashed"
+        string role "user | author"
+        Date createdAt
+        Date updatedAt
+    }
+
+    BOOK {
+        ObjectId _id PK
+        string title
+        ObjectId authorFK "Ref: User"
+        string description
+        string genre
+        string coverImage "URL"
+        string file "URL"
+        number views
+        ObjectId[] likes "Array of User IDs"
+        DateWK createdAt
+        Date updatedAt
+    }
+
+    RATING {
+        ObjectId _id PK
+        ObjectId bookFK "Ref: Book"
+        ObjectId userFK "Ref: User"
+        number rating "1-5"
+        string comment
+        Date createdAt
+        Date updatedAt
+    }
+
+    %% Relationships
+    USER ||--o{ BOOK : "authors (1:N)"
+    USER ||--o{ RATING : "writes (1:N)"
+    BOOK ||--o{ RATING : "has (1:N)"
+    
+    %% Many-to-Many relationship handled via array of IDs in Book model
+    BOOK }|..|{ USER : "liked by (M:N)"
+```
+
+## Data Flow Diagram (DFD)
+
+```mermaid
+graphTD
+    %% External Entities
+    Client[Client / User]
+    Cloudinary[Cloudinary Service]
+    MongoDB[(MongoDB Database)]
+
+    %% System Boundaries
+    subgraph "elib-api Application"
+        direction TB
+        
+        %% Routers
+        UserRouter[User Router]
+        BookRouter[Book Router]
+        RateRouter[Rating Router]
+        InsightRouter[Insight Router]
+        
+        %% Middleware
+        AuthMD[Auth Middleware]
+        UploadMD[Multer Upload]
+
+        %% Controllers
+        UserCtrl[User Controller]
+        BookCtrl[Book Controller]
+        RateCtrl[Rating Controller]
+        InsightCtrl[Insight Controller]
+    end
+
+    %% Data Flows
+    
+    %% Auth Flow
+    Client -- "1. Register / Login" --> UserRouter
+    UserRouter --> UserCtrl
+    UserCtrl -- "Create/Find User" --> MongoDB
+    MongoDB -- "User Data" --> UserCtrl
+    UserCtrl -- "JWT Token" --> Client
+
+    %% Book Management Flow
+    Client -- "2. Upload Book (Multipart)" --> AuthMD
+    AuthMD -- "Validated User" --> UploadMD
+    UploadMD -- "File Stream" --> BookRouter
+    BookRouter --> BookCtrl
+    
+    BookCtrl -- "Upload Cover/PDF" -->ZQ Cloudinary
+    Cloudinary -- "File URLs" --> BookCtrl
+    
+    BookCtrl -- "Save Book Meta + URLs" --> MongoDB
+    MongoDB -- "Book Doc" --> BookCtrl
+    BookCtrl -- "Response" --> Client
+
+    %% Rating Flow
+    Client -- "3. Rate Book" --> AuthMD
+    AuthMD --> RateRouter
+    RateRouter --> RateCtrl
+    RateCtrl -- "Create Rating" --> MongoDB
+
+    %% Insight/Analytics Flow
+    Client -- "4. Request Analytics" --> InsightRouter
+    InsightRouter --> InsightCtrl
+    InsightCtrl -- "Aggregate Query" --> MongoDB
+    MongoDB -- "Aggregated Stats" --> InsightCtrl
+    InsightCtrl -- "JSON Report" --> Client
+```
 
 ## Quick start
 
