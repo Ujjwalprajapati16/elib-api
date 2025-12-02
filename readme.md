@@ -71,7 +71,7 @@ erDiagram
 ## Data Flow Diagram (DFD)
 
 ```mermaid
-graphTD
+graph TD
     %% External Entities
     Client[Client / User]
     Cloudinary[Cloudinary Service]
@@ -113,7 +113,7 @@ graphTD
     UploadMD -- "File Stream" --> BookRouter
     BookRouter --> BookCtrl
     
-    BookCtrl -- "Upload Cover/PDF" -->ZQ Cloudinary
+    BookCtrl -- "Upload Cover/PDF" --> Cloudinary
     Cloudinary -- "File URLs" --> BookCtrl
     
     BookCtrl -- "Save Book Meta + URLs" --> MongoDB
