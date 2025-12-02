@@ -2,18 +2,34 @@
   "name": "elib-apis",
   "version": "1.0.0",
   "description": "This is a ebook api project",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx server.ts",
+    "build": "rimraf dist && tsup",
+    "start": "node dist/server.js",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [
     "rest",
     "api",
     "express"
   ],
-  "license": "ISC",
   "author": "Ujjwal Prajapati <ujjwalprajapati154@gmail.com>",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.ts"
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.19.0",
+    "mongoose": "^8.18.1",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
@@ -29,21 +45,12 @@
     "@types/node": "^24.3.1",
     "eslint": "^9.35.0",
     "globals": "^16.4.0",
+    "jiti": "^2.6.1",
     "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
+    "rimraf": "^6.1.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0"
-  },
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cloudinary": "^2.7.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "http-errors": "^2.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.19.0",
-    "mongoose": "^8.18.1",
-    "multer": "^2.0.2"
   }
 }

@@ -21,7 +21,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
             return next(error);
         }
     } catch (error) {
-        return next(createHttpError(500, "Database error"));
+        return next(createHttpError(500, (error as Error).message || "Database error"));
     }
 
     let token = "";
@@ -36,7 +36,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         // Token generation
         token = jwt.sign({ sub: newUser._id, email: newUser.email, role: newUser.role }, config.jwt_secret, { expiresIn: "7d" });
     } catch (error) {
-        return next(createHttpError(500, "Database error"));
+        return next(createHttpError(500, (error as Error).message || "Database error"));
     }
 
     // Response
@@ -61,7 +61,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
             return next(error);
         }
     } catch (error) {
-        return next(createHttpError(500, "Database error"));
+        return next(createHttpError(500, (error as Error).message || "Database error"));
     }
 
     const isMatch = await bcrypt.compare(password, user.password);

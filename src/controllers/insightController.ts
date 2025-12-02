@@ -36,8 +36,8 @@ const averageRating = async (req: Request, res: Response, next: NextFunction) =>
             averageRating: result[0]?.averageRating || 0,
             totalRatings: result[0]?.totalRatings || 0
         });
-    } catch (error: any) {
-        return next(createHttpError(500, error.message || "Failed to get average rating."));
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to get average rating."));
     }
 };
 
@@ -78,8 +78,8 @@ const highestAvgRatedBook = async (req: Request, res: Response, next: NextFuncti
             highestAvgRatedBook: result[0]?._id || "",
             averageRating: result[0]?.averageRating || 0
         });
-    } catch (error: any) {
-        return next(createHttpError(500, error.message || "Failed to get highest average rated book."));
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to get highest average rated book."));
     }
 };
 
@@ -129,8 +129,8 @@ const recentRating = async (req: Request, res: Response, next: NextFunction) => 
             recentRating: result[0] || null
         });
 
-    } catch (error: any) {
-        return next(createHttpError(500, error.message || "Failed to get most recent rating."));
+    } catch (error) {
+        return next(createHttpError(500, (error as Error).message || "Failed to get most recent rating."));
     }
 };
 

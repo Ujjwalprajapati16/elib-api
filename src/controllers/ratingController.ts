@@ -114,9 +114,9 @@ const getRatingByAuthorId = async (req: AuthRequest, res: Response, next: NextFu
             ratings
         });
 
-    } catch (error: any) {
+    } catch (error) {
         return next(
-            createHttpError(500, error.message || "Failed to fetch ratings for author's books.")
+            createHttpError(500, (error as Error).message || "Failed to fetch ratings for author's books.")
         );
     }
 };

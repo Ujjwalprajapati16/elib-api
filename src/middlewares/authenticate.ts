@@ -43,8 +43,8 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
         }
 
         next();
-    } catch (err) {
-        next(createHttpError(500, "Authentication middleware error"));
+    } catch (error) {
+        next(createHttpError(500, (error as Error).message || "Authentication middleware error"));
     }
 };
 
